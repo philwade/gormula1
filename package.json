@@ -1,0 +1,11 @@
+{
+  "name": "gormula1",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "elm-hot": "^1.1.6",
+    "node-elm-compiler": "^5.0.5",
+    "sass": "^1.32.8"
+  }
+}
