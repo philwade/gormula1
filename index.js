@@ -14,11 +14,12 @@ app.ports.requestTrackLength.subscribe(function(id) {
   }
 });
 
-app.ports.getPointAtTrackDistance.subscribe(function({ id, position }) {
+app.ports.getPointAtTrackDistance.subscribe(function({ driverId, id, position }) {
   let track = document.getElementById(id);
 
   if(track !== null && track.getPointAtLength) {
-    app.ports.gotPointAtTrackDistance.send(track.getPointAtLength(position));
+    const trackPoint = track.getPointAtLength(position);
+    app.ports.gotPointAtTrackDistance.send({ x: trackPoint.x, y: trackPoint.y, driverId: driverId} );
   }
 });
 
