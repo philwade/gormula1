@@ -240,7 +240,7 @@ subscriptions model =
         cars =
             Dict.foldl
                 (\k v acc ->
-                    Time.every v.speed (\t -> DriverTick k t) :: acc
+                    Time.every (v.speed + v.variation) (\t -> DriverTick k t) :: acc
                 )
                 []
                 model.drivers
