@@ -19,7 +19,7 @@ app.ports.getPointAtTrackDistance.subscribe(function({ driverId, id, position })
 
   if(track !== null && track.getPointAtLength) {
     const trackPoint = track.getPointAtLength(position);
-    app.ports.gotPointAtTrackDistance.send({ x: trackPoint.x, y: trackPoint.y, driverId: driverId} );
+    app.ports.gotPointAtTrackDistance.send({ position: position, x: trackPoint.x, y: trackPoint.y, driverId: driverId} );
   }
 });
 

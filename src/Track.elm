@@ -20,15 +20,17 @@ type alias DriverTrackPoint =
     { x : Float
     , y : Float
     , driverId : String
+    , position : Float
     }
 
 
 driverTrackPointDecoder : Decoder DriverTrackPoint
 driverTrackPointDecoder =
-    JD.map3 DriverTrackPoint
+    JD.map4 DriverTrackPoint
         (JD.field "x" JD.float)
         (JD.field "y" JD.float)
         (JD.field "driverId" JD.string)
+        (JD.field "position" JD.float)
 
 
 trackPointDecoder : Decoder TrackPoint

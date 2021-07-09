@@ -26,6 +26,7 @@ type alias Model =
     , trackCoordinates : Maybe TrackPoint
     , trackPosition : Float
     , drivers : Dict String Driver
+    , positionCache : Dict Float TrackPoint
     }
 
 
@@ -43,7 +44,7 @@ type alias Speed =
 
 type Msg
     = GotTrackLength Float
-    | GotTrackPoint Id TrackPoint
+    | GotTrackPoint Float Id TrackPoint
     | Noop
     | DriverTick Id Time.Posix
     | GetVariations Time.Posix
@@ -60,8 +61,13 @@ update msg model =
         GotTrackLength a ->
             ( { model | trackLength = Just a }, Cmd.none )
 
-        GotTrackPoint id a ->
-            ( { model | drivers = Dict.update id (\d -> Maybe.map (\d_ -> { d_ | trackPoint = Just a }) d) model.drivers }, Cmd.none )
+        GotTrackPoint position id a ->
+            ( { model
+                | drivers = Dict.update id (\d -> Maybe.map (\d_ -> { d_ | trackPoint = Just a }) d) model.drivers
+                , positionCache = Dict.insert position a model.positionCache
+              }
+            , Cmd.none
+            )
 
         Noop ->
             ( model, Cmd.none )
@@ -69,6 +75,22 @@ update msg model =
         DriverTick id _ ->
             case ( Dict.get id model.drivers, model.trackLength ) of
                 ( Just driver, Just length ) ->
+                    let
+                        checkCache : Float -> Model -> ( Model, Cmd Msg )
+                        checkCache position model_ =
+                            case Dict.get position model_.positionCache of
+                                Just point ->
+                                    ( { model_
+                                        | drivers = Dict.update id (\d -> Maybe.map (\d_ -> { d_ | trackPoint = Just point }) d) model_.drivers
+                                      }
+                                    , Cmd.none
+                                    )
+
+                                Nothing ->
+                                    ( model_
+                                    , getPointAtTrackDistance { id = "track", driverId = id, position = driver.trackPosition }
+                                    )
+                    in
                     if driver.trackPosition > length then
                         let
                             newDrivers =
@@ -78,7 +100,7 @@ update msg model =
                                     )
                                     model.drivers
                         in
-                        ( { model | drivers = newDrivers }, getPointAtTrackDistance { id = "track", driverId = id, position = driver.trackPosition } )
+                        checkCache driver.trackPosition { model | drivers = newDrivers }
 
                     else
                         let
@@ -89,7 +111,7 @@ update msg model =
                                     )
                                     model.drivers
                         in
-                        ( { model | drivers = newDrivers }, getPointAtTrackDistance { id = "track", driverId = id, position = driver.trackPosition } )
+                        checkCache driver.trackPosition { model | drivers = newDrivers }
 
                 ( _, _ ) ->
                     ( model, Cmd.none )
@@ -152,6 +174,7 @@ init _ =
                 , ( "SAI", Driver "ferrari" Nothing 0 13 0 )
                 , ( "NOR", Driver "mclaren" Nothing 0 12 0 )
                 ]
+      , positionCache = Dict.fromList []
       }
     , requestTrackLength "track"
     )
@@ -222,7 +245,7 @@ mapTrackPoint : JD.Value -> Msg
 mapTrackPoint jsonValue =
     case JD.decodeValue driverTrackPointDecoder jsonValue of
         Ok driverTrackPoint ->
-            GotTrackPoint driverTrackPoint.driverId { x = driverTrackPoint.x, y = driverTrackPoint.y }
+            GotTrackPoint driverTrackPoint.position driverTrackPoint.driverId { x = driverTrackPoint.x, y = driverTrackPoint.y }
 
         Err _ ->
             Noop
